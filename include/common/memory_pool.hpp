@@ -42,7 +42,8 @@ class MemoryPool final{
             ASSERT(obj_block->is_free_, "Expected a free block, but found a used one at index "
                  + std::to_string(next_free_index_));
             T* ret = &(obj_block->object_);
-            ret = new(ret) T(args...);    
+            ret = new(ret) T(std::forward<Args>(args)...);   
+            obj_block->is_free_ = false; 
             updateNextFreeIndex();
             return ret;
         }
@@ -55,12 +56,11 @@ class MemoryPool final{
             ASSERT(element_index >= 0 && static_cast<size_t>(element_index) < pool_.size(), "Pointer does not belong to this memory pool");
             ASSERT(!pool_[element_index].is_free_, "Double free detected at index " + std::to_string(element_index));
             pool_[element_index].is_free_ = true;
-            obj->~T();
         }
 
         MemoryPool() = delete;
         MemoryPool(const MemoryPool&) = delete;
-        MemoryPool(const MemoryPool&&) = delete;
+        MemoryPool(MemoryPool&&) = delete;
         MemoryPool& operator=(const MemoryPool&) = delete;
-        MemoryPool& operator=(const MemoryPool&&) = delete;
+        MemoryPool& operator=(MemoryPool&&) = delete;
 };

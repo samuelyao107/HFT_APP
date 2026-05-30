@@ -5,11 +5,12 @@
 #include <atomic>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <future>
 
 inline auto setThreadCore(int core_id) noexcept {
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(core_id, &cpuset);
+    cpu_set_t cpuset; //[01010101] 8 cores
+    CPU_ZERO(&cpuset); //[00000000] clear all cores
+    CPU_SET(core_id, &cpuset);//[00000010] set the core_id core
 
     return pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset) == 0;
 }
@@ -24,7 +25,7 @@ inline auto createAndRunThread(int core_id,
     auto thread_func = [core_id, name, 
                         p = std::move(startup_promise), 
                         f = std::forward<T>(func), 
-                        args_tuple = std::make_tuple(std::forward<A>(args)...)] mutable {
+                        args_tuple = std::make_tuple(std::forward<A>(args)...)] ()mutable {
        if(core_id >=0 && !setThreadCore(core_id)){
            std::cerr << "Failed to set thread affinity for thread "
             << name <<" "<< pthread_self() << " " << " to core " << core_id << std::endl;
@@ -39,7 +40,7 @@ inline auto createAndRunThread(int core_id,
       
     };
 
-    std::thread t(std::move(thread_func));
+   std::thread t(std::move(thread_func));
 
    bool success = startup_future.get();//it's blocking, we use it cause we need to know if the thread started successfully before we can return it
    if(!success){

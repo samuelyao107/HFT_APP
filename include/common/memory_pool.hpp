@@ -48,6 +48,7 @@ class MemoryPool final{
         }
 
         auto deallocate(const T* obj) noexcept {
+            //ObjectBlock and T are layout-compatible, we can safely cast the pointer to ObjectBlock and calculate the index by pointer arithmetic (same address)
             //Index = (Adresse Cible - Adresse de Départ) / Taille d'un Bloc
             //reinterpret_cast sert à réinterpréter brutalement les bits d’une valeur comme s’ils appartenaient à un autre type, sans aucune conversion.
            auto element_index = reinterpret_cast<const ObjectBlock*>(obj) - &(pool_[0]);//cpp uses padding, the cpu only reads memory in units of bytes, so we can treat the memory as a byte array and calculate the index by pointer arithmetic

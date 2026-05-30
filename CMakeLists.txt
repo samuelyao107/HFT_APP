@@ -40,7 +40,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # Création de l'exécutable de test
-add_executable(unit_tests tests/test_thread_utils.cpp)
+add_executable(unit_tests 
+    tests/test_thread_utils.cpp
+    tests/test_memory_pool.cpp
+)
 
 # Le test doit pouvoir lire vos fichiers dans 'include/'
 target_include_directories(unit_tests PRIVATE ${CMAKE_SOURCE_DIR}/include)

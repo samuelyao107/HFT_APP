@@ -43,6 +43,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(unit_tests 
     tests/test_thread_utils.cpp
     tests/test_memory_pool.cpp
+    tests/test_lock_free.cpp
 )
 
 # Le test doit pouvoir lire vos fichiers dans 'include/'

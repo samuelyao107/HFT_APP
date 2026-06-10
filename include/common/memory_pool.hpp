@@ -10,24 +10,19 @@ template<typename T>
 class MemoryPool final {
     private:
         struct ObjectBlock {
-            /**
-             * le C++ ajoute automatiquement du padding et gère l'alignement... mais uniquement quand il sait ce qu'il manipule !
-
-                C'est ici qu'intervient le "piège" du std::byte. En utilisant std::byte, on a rendu le compilateur complètement aveugle.
-             */
-            alignas(T) std::byte raw_memory_[sizeof(T)]; // Mémoire brute alignée pour stocker un objet de type T
+         
+            alignas(T) std::byte raw_memory_[sizeof(T)]; 
             bool is_free_ = true;
         };
         
         std::vector<ObjectBlock> pool_;
         size_t next_free_index_ = 0;
         
-        // NOUVEAU : Compteur global de cases libres
+        
         size_t free_blocks_count_; 
 
         auto updateNextFreeIndex() noexcept {
-            // Cette boucle est maintenant 100% sécurisée. 
-            // On ne l'appelle QUE si on sait qu'il reste de la place.
+           
             while(!pool_[next_free_index_].is_free_) {
                 next_free_index_++;
                 if(next_free_index_ == pool_.size()) [[unlikely]] {
@@ -37,7 +32,7 @@ class MemoryPool final {
         }
         
     public:
-        // Initialisation du compteur
+        
         explicit MemoryPool(std::size_t pool_size) : pool_(pool_size), free_blocks_count_(pool_size) { 
             ASSERT(reinterpret_cast<const ObjectBlock*>(&(pool_[0].raw_memory_)) == &(pool_[0]),
             "Memory layout is not as expected");
@@ -45,7 +40,7 @@ class MemoryPool final {
 
         template<typename... Args>
         T* allocate(Args&&... args) noexcept {
-            // FIX TEST 9 : On crashe ICI seulement si on demande une case de trop
+            
             ASSERT(free_blocks_count_ > 0, "Memory pool is full");
             
             auto obj_block = &(pool_[next_free_index_]);
@@ -54,9 +49,9 @@ class MemoryPool final {
             ret = new(ret) T(std::forward<Args>(args)...);   
             
             obj_block->is_free_ = false; 
-            free_blocks_count_--; // On décrémente
+            free_blocks_count_--;
             
-            // On ne cherche la prochaine case que s'il en reste au moins une
+            
             if (free_blocks_count_ > 0) {
                 updateNextFreeIndex();
             }
@@ -73,10 +68,8 @@ class MemoryPool final {
             obj->~T();
             pool_[element_index].is_free_ = true;
             
-            free_blocks_count_++; // On remet une case dispo
+            free_blocks_count_++; 
             
-            // FIX TEST 7 : Réutilisation immédiate ! 
-            // La prochaine allocation se fera exactement sur cette case chaude en cache.
             next_free_index_ = element_index; 
         }
 

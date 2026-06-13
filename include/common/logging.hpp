@@ -101,7 +101,6 @@ namespace Common {
             Logger(const Logger &) = delete;
             Logger(const Logger &&) = delete;
             Logger &operator=(const Logger &) = delete;
-            Logger &operator=(const Logger &) = delete;
 
             auto pushValue(const LogElement &log_element) noexcept {
                         *(queue_.getNextToWriteTo()) = log_element;
@@ -155,6 +154,20 @@ namespace Common {
             pushValue(value.c_str());
             }
 
+            // Base case for the recursive variadic template
+            auto log(const char *s) noexcept {
+                while (*s) {
+                    if (*s == '%') {
+                        if (*(s + 1) == '%') [[unlikely]] {
+                            ++s;
+                        } else {
+                            FATAL("missing arguments provided to log()");
+                        }
+                    }
+                    pushValue(*s++);
+                }
+            }
+
             template<typename T, typename... A>
             auto log(const char *s, const T &value, A... args) noexcept{
                 while(*s){
@@ -171,7 +184,6 @@ namespace Common {
                 }
                 FATAL("extra arguments provided to log()");
             }
-
 
     };
 }

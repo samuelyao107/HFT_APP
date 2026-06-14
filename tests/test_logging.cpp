@@ -62,6 +62,5 @@ TEST_F(LoggerTest, LogsPrimitiveTypesCorrectly) {
 
     std::string content = readFileContent();
     
-    
     EXPECT_EQ(content,"Logging a float: 12.5 , a char: a and an integer: 3 \n");
 }

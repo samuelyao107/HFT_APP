@@ -2,7 +2,7 @@
 #include <chrono>
 #include<ctime>
 
-namespace common{
+namespace Common{
     typedef int64_t Nanos;
 
     constexpr Nanos NANOS_TO_MICROS = 1000;

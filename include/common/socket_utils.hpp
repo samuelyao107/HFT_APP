@@ -34,7 +34,7 @@ namespace Common{
                 }
             }
             freeifaddrs(ifaddr);
-    };            
+    }
     return std::string(buf);
  }
 
@@ -106,22 +106,28 @@ namespace Common{
                             fd= socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
                             if(fd == -1){
                                 logger.log("socket() failed. errno:%\n", strerror(errno));
-                                return -1;
+                                continue;
                             }
                             if(!is_blocking){
                                 if(!setNonBlocking(fd)){
                                     logger.log("setNonBlocking() failed. errno:%\n", strerror(errno));
-                                    return -1;
+                                    close(fd);
+                                    fd = -1;
+                                    continue;
                                 };
                                 if(!is_udp && !setNoDelay(fd)){
                                     logger.log("setNoDelay() failed. errno:%\n", strerror(errno));
-                                    return -1;
+                                    close(fd);
+                                    fd = -1;
+                                    continue;
                                 }
                             }
                             int con = connect(fd, rp->ai_addr, rp->ai_addrlen);
                             if(!is_listening && con==1 && !wouldBlock()){
                                 logger.log("connect() failed. errno:%\n", strerror(errno));
-                                return -1;
+                                close(fd);
+                                fd = -1;
+                                continue;
                             }
 
                             int set_sock= setsockopt(fd, SOL_SOCKET,SO_REUSEADDR, reinterpret_cast<const char*>(&one),
@@ -129,7 +135,9 @@ namespace Common{
 
                             if(is_listening && set_sock == -1){
                                 logger.log("setsockopt() SO_REUSEADDR failed. errno:%\n", strerror(errno));
-                                return -1;
+                                close(fd);
+                                fd = -1;
+                                continue;
                             }
 
                             int bd = bind(fd, rp->ai_addr, rp->ai_addrlen);
@@ -143,29 +151,41 @@ namespace Common{
 
                             if(!is_udp && is_listening && lst== -1){
                                 logger.log("listen() failed. errno:%\n", strerror(errno));
-                                return -1;
+                                close(fd);
+                                fd = -1;
+                                continue;
                             }
                             
                             if(is_udp && ttl){
-                                const bool  is_multicast = atoi(ip.c_str()) & 0xe0;
+                                const bool  is_multicast = (atoi(ip.c_str()) & 0xe0) == 0xe0;
                                 if(is_multicast && !setMcastTTL(fd,ttl)){
                                     logger.log("setMcastTTL() failed. errno:%\n", strerror(errno));
-                                    return -1;
+                                    close(fd);
+                                    fd = -1;
+                                    continue;
                                 }
                                 if(is_multicast && !setTTL(fd,ttl)){
                                     logger.log("setTTL() failed. errno:%\n", strerror(errno));
-                                    return -1;
+                                    close(fd);
+                                    fd = -1;
+                                    continue;
                                 }
                             }
 
                             if(needs_so_timestamp && !setSOTimestamp(fd)){
                                 logger.log("setSOTimestamp() failed. errno:%\n", strerror(errno));
-                                return -1;
+                                close(fd);
+                                fd = -1;
+                                continue;
                             }
                         }
 
                         if(result){
                             freeaddrinfo(result);
+                        }
+
+                        if (fd == -1) {
+                                logger.log("Failed to create and bind/connect socket across all getaddrinfo options.\n");
                         }
 
                         return fd;

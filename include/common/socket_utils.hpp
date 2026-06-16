@@ -123,7 +123,7 @@ namespace Common{
                                 }
                             }
                             int con = connect(fd, rp->ai_addr, rp->ai_addrlen);
-                            if(!is_listening && con==1 && !wouldBlock()){
+                            if(!is_listening && con== -1 && !wouldBlock()){
                                 logger.log("connect() failed. errno:%\n", strerror(errno));
                                 close(fd);
                                 fd = -1;
@@ -144,7 +144,9 @@ namespace Common{
 
                             if(is_listening && bd ==-1){
                                 logger.log("bind() failed. errno:%\n", strerror(errno));
-                                return -1;
+                                close(fd); 
+                                fd = -1;   
+                                continue;
                             }
 
                             int lst = listen(fd, MaxTCPServerBacklog);
@@ -178,6 +180,7 @@ namespace Common{
                                 fd = -1;
                                 continue;
                             }
+                            break;
                         }
 
                         if(result){

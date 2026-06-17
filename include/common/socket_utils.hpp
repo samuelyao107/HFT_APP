@@ -20,9 +20,9 @@
 namespace Common{
     constexpr int MaxTCPServerBacklog =1024;
 
-    auto join(int fd, const std::string &ip, const std::string &iface, int port) ->bool;
+    inline auto join(int fd, const std::string &ip, const std::string &iface, int port) ->bool;
 
-    auto getIfaceIP(const std::string &iface) -> std::string {
+    inline auto getIfaceIP(const std::string &iface) -> std::string {
         char buf[NI_MAXHOST] = {'\0'};
         ifaddrs *ifaddr = nullptr;
 
@@ -38,7 +38,7 @@ namespace Common{
     return std::string(buf);
  }
 
-    auto setNonBlocking(int fd) -> bool{
+    inline auto setNonBlocking(int fd) -> bool{
         const auto flags = fcntl(fd, F_GETFL,0);
         if(flags == -1){
             return false;
@@ -50,29 +50,29 @@ namespace Common{
         return fcntl(fd,F_SETFL,flags | O_NONBLOCK) != -1 ;
     }
     //Disable Nagle Algorithm
-    auto setNoDelay(int fd) -> bool{
+    inline auto setNoDelay(int fd) -> bool{
         int one = 1;
         return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&one), sizeof(one)) !=-1;
     }
     
-    auto wouldBlock() -> bool{
+    inline auto wouldBlock() -> bool{
         return errno == EWOULDBLOCK || errno == EINPROGRESS ; 
     }
 
-    auto setTTL(int fd, int ttl) noexcept -> bool{
+    inline auto setTTL(int fd, int ttl) noexcept -> bool{
         return setsockopt(fd, IPPROTO_TCP, IP_TTL, reinterpret_cast<void*>(&ttl), sizeof(ttl)) !=-1 ;
     }
 
-    auto setMcastTTL(int fd, int mcast_ttl) ->bool{
+    inline auto setMcastTTL(int fd, int mcast_ttl) ->bool{
         return setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, reinterpret_cast<void*>(&mcast_ttl), sizeof(mcast_ttl)) !=-1 ;
     }
 
-    auto setSOTimestamp(int fd) -> bool{
+    inline auto setSOTimestamp(int fd) -> bool{
         int one =1;
         return setsockopt(fd, SOL_SOCKET, SO_TIMESTAMP, reinterpret_cast<void*>(&one), sizeof(one)) !=-1;
     }
 
-    auto createSocket(Logger &logger, const std::string &t_ip, const std::string &iface, int port, bool is_udp, 
+    inline auto createSocket(Logger &logger, const std::string &t_ip, const std::string &iface, int port, bool is_udp, 
                     bool is_blocking, bool is_listening, int ttl, bool needs_so_timestamp) ->int{
                         
                         std::string time_str;

@@ -39,6 +39,7 @@ namespace Common{
     return std::string(buf);
  }
 
+
     inline auto setNonBlocking(int fd) -> bool{
         const auto flags = fcntl(fd, F_GETFL,0);
         if(flags == -1){
@@ -52,7 +53,7 @@ namespace Common{
     }
     //Disable Nagle Algorithm
     inline auto setNoDelay(int fd) -> bool{
-        int one = 1;
+        int one = 1;//Nagle's algorithm is a technique used in TCP/IP networking to improve network efficiency by reducing the number of small packets sent over the network. It works by combining multiple small outgoing messages into a single larger packet, which can help reduce overhead and improve overall throughput. However, in some cases, such as real-time applications or low-latency scenarios, it may be desirable to disable Nagle's algorithm to ensure that small packets are sent immediately without waiting for additional data to accumulate. The setsockopt() function is used to configure socket options, and in this case, it is being used to set the TCP_NODELAY option to disable Nagle's algorithm for the specified socket file descriptor (fd). The function returns true if the operation is successful (setsockopt() returns 0), and false otherwise.
         return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<void*>(&one), sizeof(one)) !=-1;
     }
     

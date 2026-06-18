@@ -22,11 +22,12 @@ namespace Common{
 
     inline auto join(int fd, const std::string &ip, const std::string &iface, int port) ->bool;
 
+    //bind to a specific interface and get the IP address of that interface (do not want the OS to root for us)
     inline auto getIfaceIP(const std::string &iface) -> std::string {
-        char buf[NI_MAXHOST] = {'\0'};
+        char buf[NI_MAXHOST] = {'\0'};//NI_MAXHOST is a constant defined in <netdb.h> that specifies the maximum length of a hostname or IP address string. It is used to ensure that the buffer is large enough to hold the resulting string representation of the IP address.
         ifaddrs *ifaddr = nullptr;
-
-        if(getifaddrs(&ifaddr) != -1 ){
+        //the purpose of getifaddrs() is to retrieve the network interface addresses of the local machine. It populates a linked list of ifaddrs structures, each representing a network interface and its associated address information. The function returns 0 on success and -1 on error, and the result is stored in ifaddr, which must be freed with freeifaddrs() after use.
+        if(getifaddrs(&ifaddr) != -1 ){//getifaddrs() returns 0 on success, -1 on error,and the result is stored in ifaddr, which must be freed with freeifaddrs()
             for(ifaddrs *ifa = ifaddr; ifa ; ifa = ifa ->ifa_next){
                 if(ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET && iface == ifa->ifa_name){
                         getnameinfo(ifa->ifa_addr, sizeof(sockaddr_in), buf,sizeof(buf), NULL, 0, NI_NUMERICHOST);

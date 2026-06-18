@@ -46,32 +46,38 @@ namespace common {
         fd_ = -1;
     }
 
+    //Batching send and recv to reduce the number of system calls, which can improve performance in high-throughput scenarios.
+
     auto TCPSocket::sendAndRecv() noexcept -> bool {
+       
+        //Ancillary data buffer for receiving the timestamp from the kernel.
+        
         char ctrl[CMSG_SPACE(sizeof(struct timeval))];
         struct cmsghdr *cmsg = (struct cmsghdr *)&ctrl;
 
-        struct iovec iov;
-        iov.iov_base = recv_buffer_ + next_recv_valid_index_;
+        //scatter/gather I/O vector
+        struct iovec iov; // iov = input/output vector
+        iov.iov_base = recv_buffer_ + next_recv_valid_index_;//the base address of the buffer where the received data will be stored
         iov.iov_len = TCPBufferSize - next_recv_valid_index_;
 
-        msghdr msg{};
+        msghdr msg{};    //msg = messages header
         msg.msg_control = ctrl;
         msg.msg_controllen = sizeof(ctrl);
         msg.msg_name =  &inInAddr;
         msg.msg_namelen = sizeof(inInAddr);
-        msg.msg_iov = &iov;
+        msg.msg_iov = &iov;// here we set the iovec structure to the msg structure, which will be used in the recvmsg() function to receive data from the socket.
         msg.msg_iovlen = 1;
 
-        const auto n_recv = recvmsg(fd_, &msg, MSG_DONTWAIT);
+        const auto n_recv = recvmsg(fd_, &msg, MSG_DONTWAIT); //return the number of bytes received, or -1 if an error occurred
         if(n_recv > 0){
             next_recv_valid_index_ += n_recv;
 
             Nanos kernel_time = 0;
-            struct timeval time_kernel;
-            if(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMP 
+            struct timeval time_kernel; //exact time of the packet arrival in the network card in seconds and microseconds
+            if(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMP  //SCM = Socket Control Message, SOL = Socket Option Level
             && cmsg->cmsg_len == CMSG_LEN(sizeof(time_kernel))){
                 memcpy(&time_kernel, CMSG_DATA(cmsg), sizeof(time_kernel));
-                kernel_time = time_kernel.tv_sec * NANOS_TO_SEC + time_kernel.tv_usec * NANOS_TO_MICROS;
+                kernel_time = time_kernel.tv_sec * NANOS_TO_SEC + time_kernel.tv_usec * NANOS_TO_MICROS;//timekernel separate seconds and microseconds, convert to nanoseconds
             }
 
             const auto user_time = getCurrentTimeNanos();
@@ -85,7 +91,7 @@ namespace common {
         while(n_send>0){
             auto n_send_this_msg =std::min(static_cast<ssize_t> (next_send_valid_index_), n_send);
             const int flags = MSG_DONTWAIT | MSG_NOSIGNAL | (n_send_this_msg < n_send ? MSG_MORE : 0);
-            auto n_ = ::send(fd_, send_buffer_, n_send_this_msg, flags);
+            auto n_ = ::send(fd_, send_buffer_, n_send_this_msg, flags);//returns the number of bytes sent, or -1 if an error occurred
             if(n_ <0)[[unlikely]]{
                if(!wouldBlock()){
                 send_disconnected = true;

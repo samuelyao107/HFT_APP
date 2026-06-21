@@ -3,48 +3,47 @@
 #include <functional>
 #include "common/logger.hpp"
 
-namespace common {
-   
-    constexpr size_t TCPBufferSize = 64 * 1024 * 1024; 
+namespace common
+{
 
-    struct TCPSocket {
+  constexpr size_t TCPBufferSize = 64 * 1024 * 1024;
 
-      public:       
+  struct TCPSocket
+  {
 
-        explicit TCPSocket(Logger &logger);
-        
-        int fd_ = -1;
+  public:
+    explicit TCPSocket(Logger &logger);
 
-        char* send_buffer_ = nullptr;
-        char* recv_buffer_ = nullptr;
-        size_t next_send_valid_index_ = 0;
-        size_t next_recv_valid_index_ = 0;
+    int fd_ = -1;
 
-        bool send_disconnected = false;
-        bool recv_disconnected = false;
+    char *send_buffer_ = nullptr;
+    char *recv_buffer_ = nullptr;
+    size_t next_send_valid_index_ = 0;
+    size_t next_recv_valid_index_ = 0;
 
-        struct sockaddr_in inInAddr{};
+    bool send_disconnected = false;
+    bool recv_disconnected = false;
 
-        std::function<void(TCPSocket *s, Nanos rx_time)> recv_callback_;
+    struct sockaddr_in inInAddr{};
 
-        std::string time_str;
-        Logger &logger_;
+    std::function<void(TCPSocket *s, Nanos rx_time)> recv_callback_;
 
-        auto connect(const std::string &ip, const std::string &iface, int port, bool is_listening) -> int;
-        auto send(const char *data, size_t len)noexcept -> void;
-        auto sendAndRecv() noexcept -> bool;
+    std::string time_str;
+    Logger &logger_;
 
-        auto defaultRecvCallback(TCPSocket *socket, Nanos rx_time) noexcept -> void;
-        auto destroy() noexcept -> void;
+    auto connect(const std::string &ip, const std::string &iface, int port, bool is_listening) -> int;
+    auto send(const char *data, size_t len) noexcept -> void;
+    auto sendAndRecv() noexcept -> bool;
 
-        ~TCPSocket();
-        
-        TCPSocket() = delete;
-        TCPSocket(const TCPSocket &) = delete;
-        TCPSocket(TCPSocket &&) = delete;
-        TCPSocket &operator=(const TCPSocket &) = delete;
-        TCPSocket &operator=(TCPSocket &&) = delete;
+    auto defaultRecvCallback(TCPSocket *socket, Nanos rx_time) noexcept -> void;
+    auto destroy() noexcept -> void;
 
-    }
+    ~TCPSocket();
+
+    TCPSocket() = delete;
+    TCPSocket(const TCPSocket &) = delete;
+    TCPSocket(TCPSocket &&) = delete;
+    TCPSocket &operator=(const TCPSocket &) = delete;
+    TCPSocket &operator=(TCPSocket &&) = delete;
+  }
 }
-

@@ -1,10 +1,13 @@
-#include "tcp_server.h"
-#include "macros.h"
+#include "common/tcp_server.hpp"
+#include "common/macros.hpp"
+#include "common/logging.hpp"
+#include "common/socket_utils.hpp"
+
 namespace Common
 {
-    TCPServer::TCPServer(Logger &logger) : listener_socket_(logger), logger_(logger)
+    TCPServer::TCPServer(Logger &logger): listener_socket_(logger), logger_(logger)
     {
-        recv_callback_ = [this](auto socket, auto rx_time)
+        recv_callback_ = [this](TCPSocket *socket, Nanos rx_time)
         {
             defaultRecvCallback(socket, rx_time);
         };
@@ -12,23 +15,18 @@ namespace Common
         {
             defaultRecvFinishedCallback();
         };
-    };
-
-    auto defaultRecvCallback(TCPSocket *socket, Nanos rx_time) noexcept
-    {
-        logger_.log("%:% %() %
-                        TCPServer::defaultRecvCallback() socket : %
-                        len : %
-                        rx : %\n ", __FILE__, __LINE__, __FUNCTION__,
-                        Common::getCurrentTimeStr(&time_str_),
-                    socket->fd_, socket->next_rcv_valid_index_, rx_time);
     }
-    auto defaultRecvFinishedCallback() noexcept
+
+    void TCPServer::defaultRecvCallback(TCPSocket *socket, Nanos rx_time) noexcept
     {
-        logger_.log("%:% %() % TCPServer::
-                    defaultRecvFinishedCallback()\n ", __FILE__,
-                    __LINE__,
-                    __FUNCTION__,
+        logger_.log("%:% %() % TCPServer::defaultRecvCallback() socket : % len : % rx : %\n ", __FILE__, __LINE__, __FUNCTION__,
+                        Common::getCurrentTimeStr(&time_str_),
+                    socket->fd_, socket->next_recv_valid_index_ , rx_time);
+    }
+    void TCPServer::defaultRecvFinishedCallback() noexcept
+    {
+        logger_.log("%:% %() % TCPServer::defaultRecvFinishedCallback()\n ", 
+            __FILE__,__LINE__,__FUNCTION__,
                     Common::getCurrentTimeStr(&time_str_));
     }
 
@@ -36,10 +34,10 @@ namespace Common
     {
         destroy();
         efd_ = epoll_create1(1);
-        ASSERT(efd_ > = 0, "epoll_create() failed error:" + std::string(std::strerror(errno)));
+        ASSERT(efd_ >= 0, "epoll_create() failed error:" + std::string(std::strerror(errno)));
         ASSERT(listener_socket_.connect("", iface, port, true) >= 0, "Listener socket failed to connect. iface:" +
-                                                                         iface + " port:" + std::to_string(port) + "
-                                                                         error : " + std::string
+                                                                         iface + " port:" + std::to_string(port) + 
+                                                                         "error : " + std::string
                                                                          (std::strerror(errno)));
 
         ASSERT(epoll_add(&listener_socket_), "epoll_ctl() failed. error:" + std::string(std::strerror(errno)));
@@ -71,7 +69,7 @@ namespace Common
     {
         const int max_events = 1 + static_cast<int>(sockets_.size());
 
-        for (auto socket : diconnected_sockets_)
+        for (auto socket : disconnected_sockets_)
         {
             del(socket);
         }
@@ -83,10 +81,9 @@ namespace Common
             auto socket = reinterpret_cast<TCPSocket *>(event.data.ptr);
             if (event.events & EPOLLIN)
             {
-                if (socket == &listen_socket_)
+                if (socket == &listener_socket_)
                 {
-                    logger_.log("%:% %() % EPOLLIN
-                                    listener_socket : %\n ", __FILE__, __LINE__,
+                    logger_.log("%:% %() % EPOLLIN listener_socket : %\n ", __FILE__, __LINE__,
                                     __FUNCTION__,
                                 Common::getCurrentTimeStr(&time_str_),
                                 socket->fd_);
@@ -107,7 +104,7 @@ namespace Common
             {
                 logger_.log("%:% %() % EPOLLOUT socket:%\n",
                             __FILE__, __LINE__, __FUNCTION__,
-                            Common::getCurrentTimeStr(&time_str_), socket - > fd_);
+                            Common::getCurrentTimeStr(&time_str_), socket -> fd_);
                 if (std::find(send_sockets_.begin(), send_sockets_.end(), socket) == send_sockets_.end())
                 {
                     send_sockets_.push_back(socket);
@@ -117,7 +114,7 @@ namespace Common
             {
                 logger_.log("%:% %() % EPOLLERR socket:%\n",
                             __FILE__, __LINE__, __FUNCTION__,
-                            Common::getCurrentTimeStr(&time_str_), socket - > fd_);
+                            Common::getCurrentTimeStr(&time_str_), socket -> fd_);
                 if (std::find(disconnected_sockets_.begin(),
                               disconnected_sockets_.end(), socket) ==
                     disconnected_sockets_.end())
@@ -131,7 +128,7 @@ namespace Common
                         __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
             sockaddr_storage addr;
             socklen_t addr_len = sizeof(addr);
-            int fd = accept(listener_socket_.fd_, reinterpret_cast<sockaddr *>(&addr), addrlen);
+            int fd = accept(listener_socket_.fd_, reinterpret_cast<sockaddr *>(&addr), &addr_len);
             if(fd == -1){
                 break;
             }
@@ -143,10 +140,9 @@ namespace Common
             TCPSocket *socket = new TCPSocket(logger_);
             socket->fd_ = fd;
             socket->recv_callback_ = recv_callback_;
-            ASSERT(epoll_add(socket), "Unable to add socket.
-                                            error:" + std::string(std::strerror(errno)));
+            ASSERT(epoll_add(socket), "Unable to add socket. error:" + std::string(std::strerror(errno)));
             
-            if(std::find(sockets_.begin(),  sockets_.end(), socket) == sockets_end()){
+            if(std::find(sockets_.begin(),  sockets_.end(), socket) == sockets_.end()){
                 sockets_.push_back(socket);
             }                                
             if(std::find(receive_sockets_.begin(), receive_sockets_.end(), socket)==receive_sockets_.end()){
@@ -172,7 +168,7 @@ namespace Common
         }
     }
 
-    auto TCPServer::destroy()
+    auto TCPServer::destroy()->void
     {
         close(efd_);
         efd_ = -1;

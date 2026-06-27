@@ -72,7 +72,7 @@ namespace Common
 
     inline auto setTTL(int fd, int ttl) noexcept -> bool
     {
-        return setsockopt(fd, IPPROTO_TCP, IP_TTL, reinterpret_cast<void *>(&ttl), sizeof(ttl)) != -1;
+        return setsockopt(fd, IPPROTO_IP, IP_TTL, reinterpret_cast<void *>(&ttl), sizeof(ttl)) != -1;
     }
 
     inline auto setMcastTTL(int fd, int mcast_ttl) -> bool

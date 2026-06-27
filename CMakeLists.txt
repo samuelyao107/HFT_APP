@@ -45,6 +45,7 @@ add_executable(unit_tests
     tests/test_memory_pool.cpp
     tests/test_lock_free.cpp
     tests/test_logging.cpp
+    tests/test_socket_utils.cpp
 )
 
 # Le test doit pouvoir lire vos fichiers dans 'include/'

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "tcp_socket.hpp"
 #include "logging.hpp"
+#include "tcp_socket.hpp"
+#include <sys/epoll.h>
 
 namespace Common
 {
@@ -18,17 +19,20 @@ namespace Common
         std::function<void(TCPSocket *s, Nanos rx_time)> recv_callback_;
         std::function<void()> recv_finished_callback_;
 
-        
+        auto defaultRecvCallback(TCPSocket *socket, Nanos rx_time) noexcept ->void;
+        auto defaultRecvFinishedCallback() noexcept ->void;
+
         std::string time_str_;
         Logger &logger_;
 
+        auto sendAndRecv() noexcept -> void;
         auto listen(const std::string &iface, int port) -> void;
         auto epoll_add(TCPSocket *socket); 
         auto epoll_del(TCPSocket *socket);
         auto del(TCPSocket *socket);
         auto poll()noexcept -> void;
 
-        auto destroy();
+        auto destroy()->void;
         TCPServer(Logger &logger);
 
         TCPServer() = delete;
@@ -36,5 +40,5 @@ namespace Common
         TCPServer(const TCPServer &&) = delete;
         TCPServer &operator=(const TCPServer &) = delete;
         TCPServer &operator=(const TCPServer &&) = delete;
-    }
+    };
 }

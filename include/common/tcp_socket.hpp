@@ -1,9 +1,12 @@
 #pragma once
 
 #include <functional>
-#include "common/logger.hpp"
+#include "logging.hpp"
+#include <netinet/in.h>
+#include <string>
+#include "times_utils.hpp"
 
-namespace common
+namespace Common
 {
 
   constexpr size_t TCPBufferSize = 64 * 1024 * 1024;
@@ -27,8 +30,8 @@ namespace common
     struct sockaddr_in inInAddr{};
 
     std::function<void(TCPSocket *s, Nanos rx_time)> recv_callback_;
-
-    std::string time_str;
+    
+    std::string time_str_;
     Logger &logger_;
 
     auto connect(const std::string &ip, const std::string &iface, int port, bool is_listening) -> int;
@@ -45,5 +48,5 @@ namespace common
     TCPSocket(TCPSocket &&) = delete;
     TCPSocket &operator=(const TCPSocket &) = delete;
     TCPSocket &operator=(TCPSocket &&) = delete;
-  }
+  };
 }

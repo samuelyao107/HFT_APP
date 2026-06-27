@@ -1,6 +1,8 @@
 #include "common/tcp_socket.hpp"
-
-namespace common
+#include "common/socket_utils.hpp"
+#include "common/times_utils.hpp" 
+#include "common/macros.hpp"
+namespace Common
 {
 
     TCPSocket::TCPSocket(Logger &logger) : logger_(logger)
@@ -46,7 +48,7 @@ namespace common
     {
         logger_.log("%:%  %() % TCPSocket::defaultRecvCallback() socket:% len:% rx:%\n",
                     __FILE__, __LINE__, __FUNCTION__,
-                    Common::getCurrentTimeStr(), socket->fd_, socket->next_recv_valid_index_, rx_time);
+                    Common::getCurrentTimeStr(&time_str_), socket->fd_, socket->next_recv_valid_index_, rx_time);
     }
 
     auto TCPSocket::destroy() noexcept -> void
@@ -89,7 +91,7 @@ namespace common
                 && cmsg->cmsg_len == CMSG_LEN(sizeof(time_kernel)))
             {
                 memcpy(&time_kernel, CMSG_DATA(cmsg), sizeof(time_kernel));
-                kernel_time = time_kernel.tv_sec * NANOS_TO_SEC + time_kernel.tv_usec * NANOS_TO_MICROS; // timekernel separate seconds and microseconds, convert to nanoseconds
+                kernel_time = time_kernel.tv_sec * NANOS_TO_SECS + time_kernel.tv_usec * NANOS_TO_MICROS; // timekernel separate seconds and microseconds, convert to nanoseconds
             }
 
             const auto user_time = getCurrentTimeNanos();
@@ -100,7 +102,7 @@ namespace common
 
         ssize_t n_send = std::min(TCPBufferSize, next_send_valid_index_);
 
-        while (n_send > 0)
+        while(n_send > 0)
         {
             auto n_send_this_msg = std::min(static_cast<ssize_t>(next_send_valid_index_), n_send);
             const int flags = MSG_DONTWAIT | MSG_NOSIGNAL | (n_send_this_msg < n_send ? MSG_MORE : 0);
@@ -114,7 +116,7 @@ namespace common
                 break;
             }
 
-            logger_.log("%:% %() % send socket:% len:%\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str), fd_, n_);
+            logger_.log("%:% %() % send socket:% len:%\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_), fd_, n_);
             n_send -= n_;
             ASSERT(n_ == n_send_this_msg, "Do not support partial send length yet.");
         }
